@@ -1,7 +1,7 @@
 # 🌍 Air Quality Index (AQI) Predictor
 ### A Machine Learning Web Application for Real-time Pollutant Analysis
 
-[![Live Demo](https://img.shields.io/badge/Demo-Live%20on%20Render-informational)](YOUR_RENDER_URL_HERE)
+[![Live Demo](https://img.shields.io/badge/Demo-Live%20on%20Render-informational)](https://aqi-predictor-1-0py1.onrender.com)
 [![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![Framework](https://img.shields.io/badge/Framework-Flask-lightgrey.svg)](https://flask.palletsprojects.com/)
 

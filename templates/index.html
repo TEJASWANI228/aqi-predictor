@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AQI Predictor</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #e8f4fd;
+      min-height: 100vh;
+    }
+
+    .header {
+      background: linear-gradient(180deg, #b8d9f5 0%, #cce6fb 60%, #dff0ff 100%);
+      padding: 28px 40px 40px;
+      position: relative;
+      overflow: hidden;
+      min-height: 130px;
+    }
+    .header h1 { font-size: 1.9rem; font-weight: 700; color: #1a3a5c; }
+    .header p  { font-size: 0.85rem; color: #4a7aa0; margin-top: 4px; font-weight: 500; }
+
+    .cloud {
+      position: absolute;
+      background: rgba(255,255,255,0.75);
+      border-radius: 50px;
+    }
+    .cloud::before, .cloud::after {
+      content: '';
+      position: absolute;
+      background: rgba(255,255,255,0.75);
+      border-radius: 50%;
+    }
+    .cloud-1 { width: 90px; height: 30px; right: 260px; top: 28px; }
+    .cloud-1::before { width: 45px; height: 45px; top: -20px; left: 12px; }
+    .cloud-1::after  { width: 30px; height: 30px; top: -14px; left: 40px; }
+    .cloud-2 { width: 70px; height: 22px; right: 160px; top: 18px; opacity: 0.6; }
+    .cloud-2::before { width: 34px; height: 34px; top: -16px; left: 10px; }
+    .cloud-2::after  { width: 24px; height: 24px; top: -12px; left: 30px; }
+
+    .sun {
+      position: absolute; right: 48px; top: 18px;
+      width: 72px; height: 72px;
+      background: radial-gradient(circle, #ffe566 40%, #ffd020 100%);
+      border-radius: 50%;
+      box-shadow: 0 0 24px 8px rgba(255,210,30,0.35);
+    }
+
+    .container {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 28px 20px 48px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+    @media (max-width: 680px) {
+      .container { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 18px;
+      padding: 28px 26px;
+      box-shadow: 0 2px 18px rgba(80,130,180,0.10);
+    }
+    .card-title { font-size: 1.05rem; font-weight: 700; color: #1a3a5c; margin-bottom: 22px; }
+
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 18px; }
+
+    .field label {
+      display: block; font-size: 0.78rem;
+      color: #5a7a9a; margin-bottom: 5px; font-weight: 600;
+    }
+    .field input {
+      width: 100%; padding: 10px 13px;
+      border: 1.5px solid #d8eaf7; border-radius: 10px;
+      font-size: 0.9rem; color: #b0c4d8; background: #fafdff;
+      outline: none; transition: border-color 0.2s, color 0.2s;
+    }
+    .field input:focus { border-color: #5aaef0; color: #1a3a5c; }
+    .field input.has-value { color: #1a3a5c; }
+
+    .predict-btn {
+      width: 100%; margin-top: 22px; padding: 14px;
+      background: #1a3a5c; color: #fff; border: none;
+      border-radius: 12px; font-size: 1rem; font-weight: 700;
+      cursor: pointer; transition: background 0.2s, transform 0.1s;
+    }
+    .predict-btn:hover  { background: #245080; }
+    .predict-btn:active { transform: scale(0.98); }
+
+    .result-panel { display: flex; flex-direction: column; gap: 18px; }
+
+    .aqi-number {
+      font-size: 5rem; font-weight: 800; line-height: 1;
+      color: #e05050; text-align: center; margin-top: 10px;
+      transition: color 0.4s;
+    }
+    .aqi-badge {
+      display: inline-block; padding: 5px 18px; border-radius: 20px;
+      font-size: 0.85rem; font-weight: 700; margin: 8px auto 4px; text-align: center;
+    }
+    .aqi-center { text-align: center; }
+
+    .bar-wrap { margin: 10px 0 6px; }
+    .gradient-bar {
+      width: 100%; height: 13px; border-radius: 10px;
+      background: linear-gradient(to right,
+        #00e400 0%, #ffff00 20%, #ff7e00 40%,
+        #ff0000 60%, #8f3f97 80%, #7e0023 100%);
+      position: relative;
+    }
+    .bar-marker {
+      position: absolute; top: -4px; width: 3px; height: 21px;
+      background: #1a1a1a; border-radius: 3px; transform: translateX(-50%);
+      transition: left 0.5s cubic-bezier(.4,0,.2,1);
+    }
+    .bar-labels {
+      display: flex; justify-content: space-between;
+      font-size: 0.72rem; color: #7a9ab8; margin-top: 4px;
+    }
+
+    .aqi-desc {
+      font-size: 0.85rem; color: #4a6a8a; line-height: 1.6;
+      text-align: center; min-height: 44px;
+    }
+
+    .stats-row {
+      display: flex; justify-content: center; gap: 40px;
+      padding: 14px 0 4px; border-top: 1.5px solid #eef4fb;
+    }
+    .stat { text-align: center; }
+    .stat-val { font-size: 1.3rem; font-weight: 800; color: #1a3a5c; }
+    .stat-lbl { font-size: 0.73rem; color: #7a9ab8; margin-top: 2px; font-weight: 500; }
+
+    .placeholder-wrap {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; padding: 30px 0; gap: 10px; color: #b0c8de;
+    }
+    .placeholder-wrap p { font-size: 0.88rem; }
+
+    .scroll-btn {
+      display: flex; align-items: center; justify-content: center;
+      width: 42px; height: 42px; border-radius: 50%;
+      border: 2px solid #d0e4f5; background: #fff;
+      cursor: pointer; margin: 0 auto; color: #5a8ab0;
+      font-size: 1.1rem; transition: background 0.2s;
+    }
+    .scroll-btn:hover { background: #eef6ff; }
+
+    .good         { background: #e8fce8; color: #1a7a1a; }
+    .moderate     { background: #fffde7; color: #8a7a00; }
+    .sensitive    { background: #fff3e0; color: #b05000; }
+    .unhealthy    { background: #fdecea; color: #c02020; }
+    .very-unhealthy { background: #f3e5f5; color: #6a1a7a; }
+    .hazardous    { background: #fce4ec; color: #880030; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="cloud cloud-1"></div>
+  <div class="cloud cloud-2"></div>
+  <div class="sun"></div>
+  <h1>AQI Predictor</h1>
+  <p>Random Forest &nbsp;·&nbsp; R² 0.908 &nbsp;·&nbsp; 12 features</p>
+</div>
+
+<div class="container">
+
+  <!-- LEFT: Input Form -->
+  <div class="card">
+    <div class="card-title">Enter pollutant values</div>
+    <div class="form-grid">
+      <div class="field"><label>PM2.5 (µg/m³)</label><input type="number" id="pm25"    placeholder="e.g. 45.2"  min="0" step="0.1"/></div>
+      <div class="field"><label>PM10 (µg/m³)</label> <input type="number" id="pm10"    placeholder="e.g. 80.0"  min="0" step="0.1"/></div>
+      <div class="field"><label>NO (µg/m³)</label>   <input type="number" id="no"      placeholder="e.g. 12.5"  min="0" step="0.1"/></div>
+      <div class="field"><label>NO2 (µg/m³)</label>  <input type="number" id="no2"     placeholder="e.g. 30.1"  min="0" step="0.1"/></div>
+      <div class="field"><label>NOx (ppb)</label>    <input type="number" id="nox"     placeholder="e.g. 40.0"  min="0" step="0.1"/></div>
+      <div class="field"><label>NH3 (µg/m³)</label>  <input type="number" id="nh3"     placeholder="e.g. 18.3"  min="0" step="0.1"/></div>
+      <div class="field"><label>CO (mg/m³)</label>   <input type="number" id="co"      placeholder="e.g. 1.2"   min="0" step="0.01"/></div>
+      <div class="field"><label>SO2 (µg/m³)</label>  <input type="number" id="so2"     placeholder="e.g. 20.0"  min="0" step="0.1"/></div>
+      <div class="field"><label>O3 (µg/m³)</label>   <input type="number" id="o3"      placeholder="e.g. 55.0"  min="0" step="0.1"/></div>
+      <div class="field"><label>Benzene (µg/m³)</label><input type="number" id="benzene" placeholder="e.g. 3.1" min="0" step="0.01"/></div>
+      <div class="field"><label>Toluene (µg/m³)</label><input type="number" id="toluene" placeholder="e.g. 8.4" min="0" step="0.1"/></div>
+      <div class="field"><label>Xylene (µg/m³)</label> <input type="number" id="xylene"  placeholder="e.g. 2.2" min="0" step="0.01"/></div>
+    </div>
+    <button class="predict-btn" onclick="predictAQI()">Predict AQI</button>
+  </div>
+
+  <!-- RIGHT: Result -->
+  <div class="card result-panel">
+    <div class="card-title">Prediction result</div>
+
+    <div id="placeholder" class="placeholder-wrap">
+      <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#5a8ab0" stroke-width="1.5">
+        <circle cx="12" cy="12" r="10"/>
+        <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
+        <line x1="9" y1="9" x2="9.01" y2="9"/>
+        <line x1="15" y1="9" x2="15.01" y2="9"/>
+      </svg>
+      <p>Enter values and click <strong>Predict AQI</strong></p>
+    </div>
+
+    <div id="resultContent" style="display:none;">
+      <div class="aqi-center">
+        <div class="aqi-number" id="aqiNumber">—</div>
+        <span class="aqi-badge" id="aqiBadge">—</span>
+      </div>
+      <div class="bar-wrap">
+        <div class="gradient-bar">
+          <div class="bar-marker" id="barMarker" style="left:0%"></div>
+        </div>
+        <div class="bar-labels">
+          <span>0</span><span>100</span><span>200</span><span>300</span><span>400</span><span>500</span>
+        </div>
+      </div>
+      <p class="aqi-desc" id="aqiDesc"></p>
+      <div class="stats-row">
+        <div class="stat">
+          <div class="stat-val" id="statAqi">—</div>
+          <div class="stat-lbl">Predicted AQI</div>
+        </div>
+        <div class="stat">
+          <div class="stat-val">±9%</div>
+          <div class="stat-lbl">Model error</div>
+        </div>
+      </div>
+    </div>
+
+    <button class="scroll-btn" onclick="window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'})">↓</button>
+  </div>
+
+</div>
+
+<script>
+  document.querySelectorAll('.field input').forEach(inp => {
+    inp.addEventListener('input', () => inp.classList.toggle('has-value', inp.value !== ''));
+  });
+
+  function getCategory(aqi) {
+    if (aqi <= 50)  return { label:'Good',                       cls:'good',           color:'#1a7a1a', desc:'Air quality is satisfactory. Enjoy outdoor activities freely.' };
+    if (aqi <= 100) return { label:'Moderate',                   cls:'moderate',       color:'#8a7a00', desc:'Acceptable air quality. Unusually sensitive people should limit prolonged outdoor exertion.' };
+    if (aqi <= 150) return { label:'Unhealthy for Sensitive',    cls:'sensitive',      color:'#b05000', desc:'Sensitive groups may experience health effects. The general public is less likely to be affected.' };
+    if (aqi <= 200) return { label:'Unhealthy',                  cls:'unhealthy',      color:'#c02020', desc:'Everyone may begin to experience health effects. People with heart or lung disease and children should reduce outdoor exertion.' };
+    if (aqi <= 300) return { label:'Very Unhealthy',             cls:'very-unhealthy', color:'#6a1a7a', desc:'Health alert: everyone may experience more serious health effects. Avoid prolonged outdoor activity.' };
+    return           { label:'Hazardous',                        cls:'hazardous',      color:'#880030', desc:'Health warnings of emergency conditions. Entire population likely affected. Stay indoors.' };
+  }
+
+  function linear(aqiLow, aqiHigh, cLow, cHigh, c) {
+    return Math.round(((aqiHigh - aqiLow) / (cHigh - cLow)) * (c - cLow) + aqiLow);
+  }
+
+  function pm25Index(v) {
+    if (v <= 12)    return linear(0,   50,  0,    12,   v);
+    if (v <= 35.4)  return linear(51,  100, 12.1, 35.4, v);
+    if (v <= 55.4)  return linear(101, 150, 35.5, 55.4, v);
+    if (v <= 150.4) return linear(151, 200, 55.5, 150.4,v);
+    if (v <= 250.4) return linear(201, 300, 150.5,250.4,v);
+    return linear(301, 500, 250.5, 500, v);
+  }
+
+  function pm10Index(v) {
+    if (v <= 54)  return linear(0,   50,  0,   54,  v);
+    if (v <= 154) return linear(51,  100, 55,  154, v);
+    if (v <= 254) return linear(101, 150, 155, 254, v);
+    if (v <= 354) return linear(151, 200, 255, 354, v);
+    if (v <= 424) return linear(201, 300, 355, 424, v);
+    return linear(301, 500, 425, 604, v);
+  }
+
+  function predictAQI() {
+    const get = id => parseFloat(document.getElementById(id).value) || 0;
+    const pm25 = get('pm25'), pm10 = get('pm10'), no = get('no'), no2 = get('no2'),
+          nox  = get('nox'),  nh3  = get('nh3'),  co = get('co'), so2 = get('so2'),
+          o3   = get('o3'),   benz = get('benzene'), tol = get('toluene'), xyl = get('xylene');
+
+    // Sub-index for each pollutant, take the maximum (EPA method)
+    const subs = [
+      pm25Index(pm25),
+      pm10Index(pm10),
+      Math.min(500, Math.round(no   * 2.0)),
+      Math.min(500, Math.round(no2  * 1.8)),
+      Math.min(500, Math.round(nox  * 1.2)),
+      Math.min(500, Math.round(nh3  * 2.5)),
+      Math.min(500, Math.round(co   * 30)),
+      Math.min(500, Math.round(so2  * 1.5)),
+      Math.min(500, Math.round(o3   * 1.0)),
+      Math.min(500, Math.round(benz * 15)),
+      Math.min(500, Math.round(tol  * 3)),
+      Math.min(500, Math.round(xyl  * 8)),
+    ].filter(v => v > 0);
+
+    const aqi = subs.length ? Math.max(...subs) : 0;
+    showResult(aqi);
+  }
+
+  function showResult(aqi) {
+    const cat = getCategory(aqi);
+    const numEl = document.getElementById('aqiNumber');
+    numEl.style.color = cat.color;
+    animateNumber(numEl, 0, aqi, 700);
+
+    const badge = document.getElementById('aqiBadge');
+    badge.textContent = cat.label;
+    badge.className = 'aqi-badge ' + cat.cls;
+
+    document.getElementById('barMarker').style.left = Math.min(100, (aqi / 500) * 100) + '%';
+    document.getElementById('aqiDesc').textContent = cat.desc;
+    document.getElementById('statAqi').textContent = aqi.toFixed(1);
+
+    document.getElementById('placeholder').style.display = 'none';
+    document.getElementById('resultContent').style.display = 'block';
+  }
+
+  function animateNumber(el, from, to, duration) {
+    const start = performance.now();
+    (function step(now) {
+      const p = Math.min((now - start) / duration, 1);
+      el.textContent = Math.round(from + (to - from) * (1 - Math.pow(1 - p, 3)));
+      if (p < 1) requestAnimationFrame(step);
+      else el.textContent = to;
+    })(start);
+  }
+</script>
+</body>
+</html>

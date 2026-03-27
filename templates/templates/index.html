@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AQI Predictor</title>
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #050a0e;
+      --panel: #0a1628;
+      --border: #1a3a5c;
+      --accent: #00d4ff;
+      --accent2: #00ff88;
+      --warn: #ff6b35;
+      --danger: #ff1744;
+      --text: #c8d8e8;
+      --muted: #4a6a8a;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Rajdhani', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Animated background grid */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image:
+        linear-gradient(rgba(0,212,255,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,212,255,0.04) 1px, transparent 1px);
+      background-size: 50px 50px;
+      animation: gridMove 20s linear infinite;
+      pointer-events: none;
+    }
+    @keyframes gridMove {
+      0% { transform: translateY(0); }
+      100% { transform: translateY(50px); }
+    }
+
+    /* Glowing orb */
+    body::after {
+      content: '';
+      position: fixed;
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(0,212,255,0.06) 0%, transparent 70%);
+      top: -100px; left: 50%;
+      transform: translateX(-50%);
+      pointer-events: none;
+    }
+
+    /* Header */
+    header {
+      text-align: center;
+      padding: 2.5rem 1rem 1.5rem;
+      position: relative;
+    }
+    .header-tag {
+      font-size: 0.7rem;
+      letter-spacing: 0.4em;
+      color: var(--accent);
+      text-transform: uppercase;
+      margin-bottom: 0.5rem;
+    }
+    h1 {
+      font-family: 'Orbitron', monospace;
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      font-weight: 900;
+      background: linear-gradient(135deg, #00d4ff, #00ff88);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: 0.05em;
+    }
+    .subtitle {
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-top: 0.5rem;
+      letter-spacing: 0.15em;
+    }
+
+    /* Main layout */
+    .dashboard {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 1rem 1.5rem 4rem;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+    }
+    @media (max-width: 800px) { .dashboard { grid-template-columns: 1fr; } }
+
+    /* Panel */
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.5rem;
+      position: relative;
+      overflow: hidden;
+      animation: fadeIn 0.6s ease both;
+    }
+    .panel::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .panel:nth-child(2) { animation-delay: 0.1s; }
+    .panel:nth-child(3) { animation-delay: 0.2s; grid-column: 1 / -1; }
+
+    .panel-title {
+      font-family: 'Orbitron', monospace;
+      font-size: 0.7rem;
+      letter-spacing: 0.2em;
+      color: var(--accent);
+      text-transform: uppercase;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .panel-title::after {
+      content: '';
+      flex: 1; height: 1px;
+      background: linear-gradient(90deg, var(--border), transparent);
+    }
+
+    /* Input grid */
+    .input-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    .field { display: flex; flex-direction: column; gap: 0.35rem; }
+
+    .field label {
+      font-size: 0.7rem;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    .field input {
+      background: rgba(0,212,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text);
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 1rem;
+      padding: 0.6rem 0.8rem;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+    }
+    .field input:focus {
+      border-color: var(--accent);
+      background: rgba(0,212,255,0.08);
+      box-shadow: 0 0 15px rgba(0,212,255,0.15);
+    }
+    .field input::placeholder { color: var(--muted); font-size: 0.85rem; }
+
+    /* Button */
+    .predict-btn {
+      width: 100%;
+      margin-top: 1.5rem;
+      padding: 1rem;
+      background: transparent;
+      border: 1px solid var(--accent);
+      border-radius: 4px;
+      color: var(--accent);
+      font-family: 'Orbitron', monospace;
+      font-size: 0.85rem;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: color 0.3s, box-shadow 0.3s;
+    }
+    .predict-btn::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: var(--accent);
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.3s ease;
+      z-index: 0;
+    }
+    .predict-btn:hover::before { transform: scaleX(1); }
+    .predict-btn:hover { color: #000; box-shadow: 0 0 30px rgba(0,212,255,0.4); }
+    .predict-btn span { position: relative; z-index: 1; }
+    .predict-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* Result panel */
+    .result-idle {
+      text-align: center;
+      padding: 2rem;
+      color: var(--muted);
+      font-size: 0.9rem;
+      letter-spacing: 0.1em;
+    }
+
+    .aqi-display { text-align: center; padding: 1rem 0; }
+
+    .aqi-number {
+      font-family: 'Orbitron', monospace;
+      font-size: 6rem;
+      font-weight: 900;
+      line-height: 1;
+      transition: color 0.5s;
+      text-shadow: 0 0 40px currentColor;
+    }
+
+    .aqi-label {
+      font-size: 1.1rem;
+      font-weight: 600;
+      letter-spacing: 0.15em;
+      margin-top: 0.5rem;
+      transition: color 0.5s;
+    }
+
+    .aqi-advice {
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin-top: 0.75rem;
+      line-height: 1.6;
+      max-width: 280px;
+      margin-inline: auto;
+    }
+
+    /* AQI bar */
+    .aqi-bar-wrap { margin-top: 1.5rem; }
+    .bar-label {
+      font-size: 0.6rem;
+      color: var(--muted);
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      margin-bottom: 0.5rem;
+    }
+    .aqi-bar {
+      height: 8px;
+      border-radius: 4px;
+      background: linear-gradient(to right,
+        #00e676, #ffea00, #ff9100, #ff1744, #d500f9, #7e0023);
+      position: relative;
+    }
+    .aqi-marker {
+      position: absolute;
+      top: 50%; transform: translate(-50%, -50%);
+      width: 16px; height: 16px;
+      background: #fff;
+      border-radius: 50%;
+      box-shadow: 0 0 12px rgba(255,255,255,0.8);
+      transition: left 0.7s cubic-bezier(.34,1.56,.64,1);
+    }
+    .bar-ticks {
+      display: flex; justify-content: space-between;
+      font-size: 0.58rem; color: var(--muted); margin-top: 0.4rem;
+    }
+
+    /* Stats row */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+      margin-top: 1.5rem;
+    }
+    .stat {
+      background: rgba(0,212,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.75rem;
+      text-align: center;
+      transition: border-color 0.3s, box-shadow 0.3s;
+    }
+    .stat:hover {
+      border-color: var(--accent);
+      box-shadow: 0 0 15px rgba(0,212,255,0.1);
+    }
+    .stat-val {
+      font-family: 'Orbitron', monospace;
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--accent2);
+    }
+    .stat-lbl {
+      font-size: 0.6rem;
+      color: var(--muted);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-top: 0.2rem;
+    }
+
+    /* Error */
+    .error {
+      background: rgba(255,23,68,0.1);
+      border: 1px solid var(--danger);
+      color: var(--danger);
+      border-radius: 4px;
+      padding: 0.75rem;
+      font-size: 0.8rem;
+      margin-top: 1rem;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-tag">Machine Learning · Random Forest · R² 0.908</div>
+  <h1>AQI PREDICTOR</h1>
+  <p class="subtitle">Real-time Air Quality Index Prediction · India Dataset</p>
+</header>
+
+<div class="dashboard">
+
+  <!-- Input Panel -->
+  <div class="panel">
+    <div class="panel-title">Pollutant Inputs</div>
+    <div class="input-grid">
+      <div class="field">
+        <label>PM2.5 (µg/m³)</label>
+        <input type="number" id="PM2.5" placeholder="e.g. 85" step="0.1" min="0"/>
+      </div>
+      <div class="field">
+        <label>PM10 (µg/m³)</label>
+        <input type="number" id="PM10" placeholder="e.g. 120" step="0.1" min="0"/>
+      </div>
+      <div class="field">
+        <label>NO (µg/m³)</label>
+        <input type="number" id="NO" placeholder="e.g. 12" step="0.1" min="0"/>
+      </div>
+      <div class="field">
+        <label>NO2 (µg/m³)</label>
+        <input type="number" id="NO2" placeholder="e.g. 40" step="0.1" min="0"/>
+      </div>
+      <div class="field">
+        <label>NOx (ppb)</label>
+        <input type="number" id="NOx" placeholder="e.g. 55" step="0.1" min="0"/>
+      </div>
+      <div class="field">
+        <label>NH3 (µg/m³)</label>
+        <input type="number" id="NH3" placeholder="e.g. 18" step="0.1" min="0"/>
+      </div>
+      <div class="field">
+        <label>CO (mg/m³)</label>
+        <input type="number" id="CO" placeholder="e.g. 1.5" step="0.01" min="0"/>
+      </div>
+      <div class="field">
+        <label>SO2 (µg/m³)</label>
+        <input type="number" id="SO2" placeholder="e.g. 22" step="0.1" min="0"/>
+      </div>
+      <div class="field">
+        <label>O3 (µg/m³)</label>
+        <input type="number" id="O3" placeholder="e.g. 35" step="0.1" min="0"/>
+      </div>
+      <div class="field">
+        <label>Benzene (µg/m³)</label>
+        <input type="number" id="Benzene" placeholder="e.g. 3.2" step="0.01" min="0"/>
+      </div>
+      <div class="field">
+        <label>Toluene (µg/m³)</label>
+        <input type="number" id="Toluene" placeholder="e.g. 8.5" step="0.01" min="0"/>
+      </div>
+      <div class="field">
+        <label>Xylene (µg/m³)</label>
+        <input type="number" id="Xylene" placeholder="e.g. 2.1" step="0.01" min="0"/>
+      </div>
+    </div>
+
+    <button class="predict-btn" id="predictBtn" onclick="predict()">
+      <span>⚡ Run Prediction</span>
+    </button>
+    <div class="error" id="errMsg"></div>
+  </div>
+
+  <!-- Result Panel -->
+  <div class="panel">
+    <div class="panel-title">Prediction Output</div>
+
+    <div id="idleMsg" class="result-idle">
+      Enter pollutant values and click<br/>
+      <strong style="color:var(--accent)">Run Prediction</strong>
+    </div>
+
+    <div id="resultBox" style="display:none">
+      <div class="aqi-display">
+        <div class="aqi-number" id="aqiNum">—</div>
+        <div class="aqi-label" id="aqiLabel">—</div>
+        <div class="aqi-advice" id="aqiAdvice"></div>
+      </div>
+      <div class="aqi-bar-wrap">
+        <div class="bar-label">AQI Scale</div>
+        <div class="aqi-bar">
+          <div class="aqi-marker" id="aqiMarker" style="left:0%"></div>
+        </div>
+        <div class="bar-ticks">
+          <span>0</span><span>100</span><span>200</span><span>300</span><span>400</span><span>500</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Model stats -->
+    <div class="stats-row">
+      <div class="stat">
+        <div class="stat-val">RF</div>
+        <div class="stat-lbl">Algorithm</div>
+      </div>
+      <div class="stat">
+        <div class="stat-val">0.908</div>
+        <div class="stat-lbl">R² Score</div>
+      </div>
+      <div class="stat">
+        <div class="stat-val">12</div>
+        <div class="stat-lbl">Features</div>
+      </div>
+      <div class="stat">
+        <div class="stat-val">24K</div>
+        <div class="stat-lbl">Training Rows</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Full width bottom panel -->
+  <div class="panel">
+    <div class="panel-title">AQI Category Reference</div>
+    <div style="display:grid; grid-template-columns: repeat(6,1fr); gap:0.75rem; text-align:center;">
+      <div style="padding:0.75rem; border-radius:6px; background:rgba(0,230,118,0.1); border:1px solid #00e676">
+        <div style="color:#00e676; font-family:'Orbitron',monospace; font-weight:700">0–50</div>
+        <div style="font-size:0.7rem; color:#00e676; margin-top:0.3rem">Good</div>
+      </div>
+      <div style="padding:0.75rem; border-radius:6px; background:rgba(255,234,0,0.1); border:1px solid #ffea00">
+        <div style="color:#ffea00; font-family:'Orbitron',monospace; font-weight:700">51–100</div>
+        <div style="font-size:0.7rem; color:#ffea00; margin-top:0.3rem">Moderate</div>
+      </div>
+      <div style="padding:0.75rem; border-radius:6px; background:rgba(255,145,0,0.1); border:1px solid #ff9100">
+        <div style="color:#ff9100; font-family:'Orbitron',monospace; font-weight:700">101–150</div>
+        <div style="font-size:0.7rem; color:#ff9100; margin-top:0.3rem">Sensitive</div>
+      </div>
+      <div style="padding:0.75rem; border-radius:6px; background:rgba(255,23,68,0.1); border:1px solid #ff1744">
+        <div style="color:#ff1744; font-family:'Orbitron',monospace; font-weight:700">151–200</div>
+        <div style="font-size:0.7rem; color:#ff1744; margin-top:0.3rem">Unhealthy</div>
+      </div>
+      <div style="padding:0.75rem; border-radius:6px; background:rgba(213,0,249,0.1); border:1px solid #d500f9">
+        <div style="color:#d500f9; font-family:'Orbitron',monospace; font-weight:700">201–300</div>
+        <div style="font-size:0.7rem; color:#d500f9; margin-top:0.3rem">Very Unhealthy</div>
+      </div>
+      <div style="padding:0.75rem; border-radius:6px; background:rgba(126,0,35,0.2); border:1px solid #7e0023">
+        <div style="color:#ff6b6b; font-family:'Orbitron',monospace; font-weight:700">301+</div>
+        <div style="font-size:0.7rem; color:#ff6b6b; margin-top:0.3rem">Hazardous</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function getCategory(aqi) {
+    if (aqi <= 50)  return { label: 'Good',                      color: '#00e676', advice: 'Air quality is satisfactory. Great day for outdoor activities!' };
+    if (aqi <= 100) return { label: 'Moderate',                  color: '#ffea00', advice: 'Acceptable air quality. Sensitive individuals should take caution.' };
+    if (aqi <= 150) return { label: 'Unhealthy for Sensitive',   color: '#ff9100', advice: 'Sensitive groups should limit prolonged outdoor exertion.' };
+    if (aqi <= 200) return { label: 'Unhealthy',                 color: '#ff1744', advice: 'Everyone may begin experiencing health effects. Limit outdoor time.' };
+    if (aqi <= 300) return { label: 'Very Unhealthy',            color: '#d500f9', advice: 'Health alert! Everyone may experience serious health effects.' };
+    return           { label: 'Hazardous',                       color: '#ff6b6b', advice: 'Emergency conditions. Avoid all outdoor activity immediately.' };
+  }
+
+  async function predict() {
+    const btn    = document.getElementById('predictBtn');
+    const errDiv = document.getElementById('errMsg');
+    errDiv.style.display = 'none';
+
+    const fields = ['PM2.5','PM10','NO','NO2','NOx','NH3','CO','SO2','O3','Benzene','Toluene','Xylene'];
+    const data   = {};
+
+    for (const f of fields) {
+      const val = document.getElementById(f).value;
+      if (val === '') { showErr(`Please fill in ${f}`); return; }
+      data[f] = parseFloat(val);
+    }
+
+    btn.disabled = true;
+    btn.querySelector('span').textContent = 'Analyzing...';
+
+    try {
+      const res    = await fetch('/predict', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      const result = await res.json();
+      showResult(result.aqi);
+    } catch(e) {
+      showErr('Server error: ' + e.message);
+    } finally {
+      btn.disabled = false;
+      btn.querySelector('span').textContent = '⚡ Run Prediction';
+    }
+  }
+
+  function showResult(aqi) {
+    const cat = getCategory(aqi);
+    document.getElementById('idleMsg').style.display   = 'none';
+    document.getElementById('resultBox').style.display = 'block';
+    document.getElementById('aqiNum').textContent      = aqi;
+    document.getElementById('aqiNum').style.color      = cat.color;
+    document.getElementById('aqiLabel').textContent    = cat.label;
+    document.getElementById('aqiLabel').style.color    = cat.color;
+    document.getElementById('aqiAdvice').textContent   = cat.advice;
+    const pct = Math.min((aqi / 500) * 100, 100);
+    document.getElementById('aqiMarker').style.left    = pct + '%';
+  }
+
+  function showErr(msg) {
+    const el = document.getElementById('errMsg');
+    el.textContent    = msg;
+    el.style.display  = 'block';
+  }
+</script>
+</body>
+</html>

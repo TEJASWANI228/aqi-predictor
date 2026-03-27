@@ -1,0 +1,17 @@
+Lib/
+Scripts/
+DLLs/
+libs/
+include/
+share/
+Tools/
+__pycache__/
+*.dll
+*.exe
+*.pyc
+venv/
+LICENSE.txt
+NEWS.txt
+city_day.csv
+aqi_distribution.png
+top_polluted_cities.png

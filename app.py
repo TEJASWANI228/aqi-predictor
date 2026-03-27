@@ -4,10 +4,13 @@ import numpy as np
 
 app = Flask(__name__)
 
-with open('rf_model.pkl', 'rb') as f:
-    model = pickle.load(f)
-
-print("Model loaded successfully!")
+model = None
+try:
+    with open('rf_model.pkl', 'rb') as f:
+        model = pickle.load(f)
+    print("Model loaded successfully!")
+except FileNotFoundError:
+    print("Warning: rf_model.pkl not found. /predict endpoint will not work.")
 
 @app.route('/')
 def home():
@@ -15,6 +18,8 @@ def home():
 
 @app.route('/predict', methods=['POST'])
 def predict():
+    if model is None:
+        return jsonify({'error': 'Model unavailable. Please contact the administrator.'}), 503
     try:
         data = request.get_json()
         features = [
@@ -30,4 +35,4 @@ def predict():
         return jsonify({'error': str(e)}), 400  # ← what status code for a bad request?
 
 if __name__ == '__main__':
-    app.run(debug=True)  # ← True or False?
+    app.run(debug=False)

@@ -1,49 +1,34 @@
-# 🌫️ AQI Predictor — Air Quality Index Prediction Web App
+# 🌍 Air Quality Index (AQI) Predictor
+### A Machine Learning Web Application for Real-time Pollutant Analysis
 
-A machine learning web application that predicts the **Air Quality Index (AQI)** based on pollutant concentrations using a trained **Random Forest model**.
-
-## 🚀 Live Demo
-🔗 [Click here to view the live app](https://aqi-predictor.onrender.com)
+[![Live Demo](https://img.shields.io/badge/Demo-Live%20on%20Render-informational)](YOUR_RENDER_URL_HERE)
+[![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![Framework](https://img.shields.io/badge/Framework-Flask-lightgrey.svg)](https://flask.palletsprojects.com/)
 
 ## 📌 Project Overview
-Air pollution is one of the biggest environmental challenges. This project uses real-world air quality data to train a machine learning model that can predict AQI from pollutant readings.
+This project is a full-stack Machine Learning application that predicts the **Air Quality Index (AQI)** based on 12 different pollutant levels (PM2.5, PM10, CO, NO2, etc.). It uses a **Random Forest Regressor** trained on historical environmental data to provide high-accuracy predictions.
 
-## ✨ Features
-- 🔬 Predicts AQI from 12 pollutant inputs
-- 🎨 Beautiful dashboard UI with sky theme
-- 📊 Visual AQI gauge with color-coded categories
-- ⚡ Real-time prediction with animated results
-- 📱 Responsive design
-
-## 🤖 ML Model Performance
-| Model | R² Score |
-|-------|----------|
-| Random Forest ⭐ | **0.908** |
+## 🚀 Features
+* **ML Model:** Random Forest Regressor with an $R^2$ score of **0.908**.
+* **Responsive UI:** Custom CSS-designed dashboard with dynamic cloud/sun animations.
+* **Real-time Prediction:** Uses Fetch API to communicate between the browser and the Flask backend.
+* **AQI Categorization:** Automatically classifies results into "Good," "Moderate," or "Hazardous" with health recommendations.
 
 ## 🛠️ Tech Stack
-- **Frontend:** HTML, CSS, JavaScript
-- **Backend:** Python, Flask
-- **ML:** Scikit-learn, Pandas, NumPy
-- **Deployment:** Render
+* **Frontend:** HTML5, CSS3, JavaScript (ES6+)
+* **Backend:** Flask, Gunicorn
+* **Machine Learning:** Scikit-learn, Pandas, NumPy, Pickle
+* **Deployment:** Render (Cloud Platform)
 
-## ⚙️ How to Run Locally
-1. Clone the repo: `git clone https://github.com/TEJASWANI228/aqi-predictor.git`
+## 📊 Data Features (Inputs)
+The model accepts 12 major pollutants:
+`PM2.5`, `PM10`, `NO`, `NO2`, `NOx`, `NH3`, `CO`, `SO2`, `O3`, `Benzene`, `Toluene`, `Xylene`.
+
+## ⚙️ Local Setup
+1. Clone the repo: `git clone https://github.com/YOUR_USERNAME/aqi-predictor.git`
 2. Install dependencies: `pip install -r requirements.txt`
-3. Train model: `python aqi_analysis.py`
-4. Run app: `python app.py`
-5. Open browser: `http://127.0.0.1:5000`
+3. Run the app: `python app.py`
+4. Access at: `http://127.0.0.1:5000`
 
-> ⚠️ Note: rf_model.pkl is not included (140MB). Run aqi_analysis.py first to generate it.
-
-## 📊 AQI Categories
-| AQI Range | Category |
-|-----------|----------|
-| 0 - 50 | 🟢 Good |
-| 51 - 100 | 🟡 Moderate |
-| 101 - 150 | 🟠 Unhealthy for Sensitive |
-| 151 - 200 | 🔴 Unhealthy |
-| 201 - 300 | 🟣 Very Unhealthy |
-| 301 - 500 | 🔴 Hazardous |
-
-## 👩‍💻 Developed By
-**Tejaswani** — GitHub: [@TEJASWANI228](https://github.com/TEJASWANI228)
+---
+*Developed as part of my Engineering Coursework at VIT Bhopal University.*
